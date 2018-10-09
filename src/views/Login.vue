@@ -53,6 +53,8 @@ export default {
               })
               // 设置token
               localStorage.setItem('mytoken', res.data.token)
+              // 设置username的vuex  state
+              this.$store.commit('setUsername', res.data.username)
               // 函数式路径编程
               this.$router.push({name: 'Home'})
             } else {
