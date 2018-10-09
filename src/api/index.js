@@ -20,3 +20,18 @@ export const checkUser = params => {
 export const getUserList = params => {
   return axios.get('users', params).then(res => res.data)
 }
+// 用户数据列表
+export const userList = params => {
+  return axios.get('users', params).then(res => res.data)
+}
+// 更换用户状态
+// export const changeUserState = params => {
+//   return axios.put('users/:' + params.uId + '/state/:' + params.type, params).then(res => res.data)
+// }
+export const changeUserState = params => {
+  return axios.put(`users/${params.uid}/state/${params.type}`, params).then(res => res.data)
+}
+// 添加用户
+export const addUser = params => {
+  return axios.post('users', params).then(res => res.data)
+}

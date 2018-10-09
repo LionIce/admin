@@ -11,7 +11,7 @@ import store from '@/store/store'
 Vue.use(ElementUI)
 Vue.config.productionTip = false
 
-// 注册导航守卫，作用是在路油跳转前对路由进行判断，防止未登陆的用户跳转到其他页面去
+// 注册导航守卫，作用是在路由跳转前对路由进行判断，防止未登陆的用户跳转到其他页面去
 router.beforeEach((to, from, next) => {
   let token = localStorage.getItem('mytoken')
   if (token) {
