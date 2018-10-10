@@ -23,6 +23,7 @@
     </el-row>
 
     <el-table
+      v-loading="loading"
       :data="userList"
       border
       style="width: 100%">
@@ -59,9 +60,9 @@
       </el-table-column>
       <el-table-column label="操作">
         <template slot-scope="scope">
-          <el-button size="medium" type="primary" icon="el-icon-edit" plain></el-button>
-          <el-button size="medium" type="danger" icon="el-icon-delete" plain></el-button>
-          <el-button size="medium" type="success" icon="el-icon-check" plain></el-button>
+          <el-button size="medium" type="primary" icon="el-icon-edit" plain @click="showEditDialog(scope.row)"></el-button>
+          <el-button size="medium" type="danger" icon="el-icon-delete" plain @click="showDelDialog(scope.row)"></el-button>
+          <el-button size="medium" type="success" icon="el-icon-check" plain @click="showGrantDialog(scope.row)"></el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -71,7 +72,7 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
         :current-page="1"
-        :page-sizes="[1, 2, 3, 4]"
+        :page-sizes="[1, 2, 3, 4, 5]"
         :page-size="pagesize"
         layout="total, sizes, prev, pager, next, jumper"
         :total="total">
@@ -99,25 +100,94 @@
         <el-button type="primary" @click="addUserSubmit('addUserForm')">确 定</el-button>
       </div>
     </el-dialog>
+
+    <!-- 编辑用户对话框 -->
+    <el-dialog title="编辑用户" :visible.sync="editDialogFormVisible">
+      <el-form :model="editForm" :rules='rules' ref="editUserForm">
+        <el-form-item label="用户名" :label-width="formLabelWidth" prop="username">
+          <el-input v-model="editForm.username" autocomplete="off" :disabled="true"></el-input>
+        </el-form-item>
+        <el-form-item label="邮箱" :label-width="formLabelWidth" prop="email">
+          <el-input v-model="editForm.email" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="电话" :label-width="formLabelWidth" prop="mobile">
+          <el-input v-model="editForm.mobile" autocomplete="off"></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="editDialogFormVisible = false">取 消</el-button>
+        <el-button type="primary" @click="editUserSubmit('editUserForm')">确 定</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 删除提示对话框 -->
+    <el-dialog
+      title="提示"
+      :visible.sync="centerDialogVisible"
+      width="30%"
+      center>
+      <span>删除用户：{{delForm.username}}？</span>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="centerDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="delUserSubmit">确 定</el-button>
+      </span>
+    </el-dialog>
+
+    <!-- 分配角色 -->
+    <el-dialog title="用户职位" :visible.sync="grantDialogFormVisible">
+      <el-form :model="grantForm">
+        <el-form-item label="用户名" :label-width="formLabelWidth" prop="username">
+          <el-input v-model="grantForm.username" autocomplete="off" :disabled="true"></el-input>
+        </el-form-item>
+        <el-form-item label="选择用户职位">
+          <el-select v-model="roleId" :label-width="formLabelWidth" placeholder="请选择职位" clearable>
+            <el-option
+              v-for="(role,index) in roleList"
+              :key="index"
+              :label="role.roleName"
+              :value="role.id"></el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="grantDialogFormVisible = false">取 消</el-button>
+        <el-button type="primary" @click="grantUserSubmit()">确 定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 <script>
-import {userList, changeUserState, addUser} from '@/api'
+import {userList, changeUserState, addUser, editUser, getUserById, delUser, getRoleList, grantUserRole} from '@/api'
 export default {
   data () {
     return {
+      loading: true,
       userList: [],
       query: '',
       total: 0,
-      pagesize: 2,
+      pagesize: 3,
       pagenum: 1,
       addDialogFormVisible: false,
+      editDialogFormVisible: false,
+      centerDialogVisible: false,
+      grantDialogFormVisible: false,
       addForm: {
         username: '',
         password: '',
         email: '',
         mobile: ''
       },
+      editForm: {
+        id: 0,
+        username: '',
+        email: '',
+        mobile: ''
+      },
+      delForm: {
+        id: 0,
+        username: ''
+      },
+      grantForm: {},
       formLabelWidth: '120px',
       rules: {
         username: [
@@ -133,7 +203,11 @@ export default {
         mobile: [
           { required: true, message: '电话不能为空', trigger: 'blur' }
         ]
-      }
+      },
+      roleList: {},
+      roleId: '',
+      value: '',
+      label: ''
     }
   },
   created () {
@@ -176,18 +250,53 @@ export default {
         type: 'success'
       })
     },
+    showEditDialog (row) {
+      getUserById(row.id).then(res => {
+        console.log(res)
+        if (res.meta.status === 200) {
+          this.editDialogFormVisible = true
+          this.editForm.username = res.data.username
+          this.editForm.email = res.data.email
+          this.editForm.mobile = res.data.mobile
+          this.editForm.id = res.data.id
+        } else {
+          this.$message({
+            message: '网络错误',
+            center: true,
+            type: 'wraning'
+          })
+        }
+      })
+    },
+    showDelDialog (row) {
+      this.centerDialogVisible = true
+      this.delForm.id = row.id
+      this.delForm.username = row.username
+    },
+    showGrantDialog (row) {
+      console.log(row)
+      this.grantDialogFormVisible = true
+      // this.grantForm.username = row.username
+      this.grantForm = row
+      getRoleList().then(res => {
+        if (res.meta.status === 200) {
+          this.roleList = res.data
+        }
+      })
+    },
     initList () {
+      this.loading = true
       let params = {params: {query: this.query, pagenum: this.pagenum, pagesize: this.pagesize}}
       userList(params).then(res => {
         this.userList = res.data.users
         this.total = res.data.total
+        this.loading = false
       })
     },
     addUserSubmit (formName) {
       this.$refs[formName].validate(valide => {
         if (valide) {
           addUser(this.addForm).then(res => {
-            console.log(res)
             if (res.meta.status === 201) {
               this.$message({
                 message: '用户添加成功',
@@ -204,6 +313,64 @@ export default {
           })
         }
       })
+    },
+    editUserSubmit (formName) {
+      this.$refs[formName].validate(valide => {
+        if (valide) {
+          editUser(this.editForm).then(res => {
+            if (res.meta.status === 200) {
+              this.$message({
+                message: res.meta.msg,
+                type: 'success',
+                center: true
+              })
+            }
+            this.editDialogFormVisible = false
+            this.initList()
+          })
+        } else {
+          this.$message({
+            message: '请填写完整信息',
+            type: 'wraning',
+            center: true
+          })
+        }
+      })
+    },
+    delUserSubmit () {
+      delUser(this.delForm.id).then(res => {
+        console.log(res)
+        if (res.meta.msg === 200) {
+          this.$message({
+            message: res.meta.msg,
+            type: 'success',
+            center: true
+          })
+        }
+        this.centerDialogVisible = false
+        this.initList()
+      })
+    },
+    grantUserSubmit () {
+      if (!this.roleId) {
+        this.$message({
+          type: 'warning',
+          message: '角色信息不能为空'
+        })
+      } else {
+        grantUserRole({rid: this.roleId, id: this.grantForm.id}).then(res => {
+          if (res.meta.status === 200) {
+            this.$message({
+              message: res.meta.msg,
+              type: 'success',
+              center: true
+            })
+          }
+          this.grantDialogFormVisible = false
+          this.placeholder = ''
+          this.initList()
+        })
+      }
     }
   },
   mounted () {}
@@ -234,5 +401,8 @@ export default {
     padding: 5px 0;
     background-color: #D3DCE6;
   }
+}
+.el-dialog--center .el-dialog__body {
+    text-align: center;
 }
 </style>
