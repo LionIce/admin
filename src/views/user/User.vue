@@ -288,6 +288,7 @@ export default {
       this.loading = true
       let params = {params: {query: this.query, pagenum: this.pagenum, pagesize: this.pagesize}}
       userList(params).then(res => {
+        console.log(res)
         this.userList = res.data.users
         this.total = res.data.total
         this.loading = false
