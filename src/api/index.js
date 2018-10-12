@@ -63,3 +63,30 @@ export const getRightsList = params => {
 export const deleteRoleRight = params => {
   return axios.delete(`roles/${params.roleId}/rights/${params.rightId}`, params).then(res => res.data)
 }
+// 获取用户权限 getRightsList
+// 角色权限授权，修改添加用户权限
+// export const addRolesRight = params => {
+//   return axios.post(`roles/${params.roleId}/rights`, params).then(res => res.data)
+// }
+export const grantRolesRight = (roleId, rids) => {
+  return axios.post(`roles/${roleId}/rights`, rids).then(res => res.data)
+}
+// 左侧菜单权限
+export const leftMenuRight = () => {
+  return axios.get('menus').then(res => res.data)
+}
+// category.vue
+// 商品分类
+// export const categoryList = params => {
+//   return axios.get('categories', params).then(res => res.data)
+// }
+export const getCategories = (params) => {
+  return axios.get('categories', {params: params}).then(res => res.data)
+}
+// 添加分类
+// export const addCatrgories = params => {
+//   return axios.post('categories', params).then(res => res.data)
+// }
+export const addCategories = params => {
+  return axios.post('categories', params).then(res => res.data)
+}

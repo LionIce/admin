@@ -82,68 +82,39 @@
   </el-table>
 
   <!-- 权限修改对话框 -->
-  <el-dialog title="收货地址" :visible.sync="dialogFormVisible">
-    <el-tree
-      :data="data2"
-      show-checkbox
-      node-key="id"
-      :default-expanded-keys="[2, 3]"
-      :default-checked-keys="[5]"
-      :props="defaultProps">
-    </el-tree>
+  <el-dialog title="权限修改" :visible.sync="dialogFormVisible">
+    <div class="tree-container">
+      <el-tree
+        :data="rolePowers"
+        ref="tree"
+        show-checkbox
+        node-key="id"
+        :default-expand-all="true"
+        :default-checked-keys="selectRoles"
+        :props="defaultProps">
+      </el-tree>
+    </div>
     <div slot="footer" class="dialog-footer">
       <el-button @click="dialogFormVisible = false">取 消</el-button>
-      <el-button type="primary" @click="dialogFormVisible = false">确 定</el-button>
+      <el-button type="primary" @click="submitGrant">确 定</el-button>
     </div>
   </el-dialog>
   </div>
 </template>
 <script>
-import {getRoleList, deleteRoleRight} from '@/api'
+import {getRoleList, deleteRoleRight, getRightsList, grantRolesRight} from '@/api'
 export default {
   data () {
     return {
       roleList: [],
       dialogFormVisible: false,
-      data2: [{
-        id: 1,
-        label: '一级 1',
-        children: [{
-          id: 4,
-          label: '二级 1-1',
-          children: [{
-            id: 9,
-            label: '三级 1-1-1'
-          }, {
-            id: 10,
-            label: '三级 1-1-2'
-          }]
-        }]
-      }, {
-        id: 2,
-        label: '一级 2',
-        children: [{
-          id: 5,
-          label: '二级 2-1'
-        }, {
-          id: 6,
-          label: '二级 2-2'
-        }]
-      }, {
-        id: 3,
-        label: '一级 3',
-        children: [{
-          id: 7,
-          label: '二级 3-1'
-        }, {
-          id: 8,
-          label: '二级 3-2'
-        }]
-      }],
+      rolePowers: [],
       defaultProps: {
         children: 'children',
-        label: 'label'
-      }
+        label: 'authName'
+      },
+      selectRoles: [], // 保存默认选择的权限id
+      currentRole: {} // 保存点击的角色
     }
   },
   created () {
@@ -181,8 +152,46 @@ export default {
         }
       })
     },
-    showDialog () {
+    showDialog (row) {
+      this.selectRoles = []
       this.dialogFormVisible = true
+      this.currentRole = row
+      getRightsList({type: 'tree'}).then(res => {
+        // console.log(res)
+        this.rolePowers = res.data
+      })
+      this.currentRole.children.forEach(first => {
+        if (first.children && first.children.length !== 0) {
+          first.children.forEach(second => {
+            if (second.children && second.children.length !== 0) {
+              second.children.forEach(three => {
+                this.selectRoles.push(three.id)
+              })
+            }
+          })
+        }
+      })
+    },
+    submitGrant () {
+      let rids = this.$refs.tree.getCheckedKeys().join(',')
+      grantRolesRight(this.currentRole.id, {rids: rids}).then(res => {
+        // console.log(res)
+        if (res.meta.status === 200) {
+          this.$message({
+            message: res.meta.msg,
+            type: 'success',
+            center: true
+          })
+          this.dialogFormVisible = false
+          this.initRoleList()
+        } else {
+          this.$message({
+            message: res.meta.msg,
+            type: 'error',
+            center: true
+          })
+        }
+      })
     }
   }
 }
@@ -192,6 +201,10 @@ export default {
   .el-tag {
     margin-right: 10px;
     margin-bottom: 10px;
+  }
+  .tree-container {
+    height: 300px;
+    overflow: auto;
   }
 }
 </style>
